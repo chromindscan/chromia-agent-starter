@@ -6,8 +6,7 @@ export class MemoryTool {
     constructor(private db: ChromiaDB, private sessionId: string) {
     }
 
-    async convo(systemPrompt: string, content: any[]) {
-        const messages = [{ role: "system", content: systemPrompt}, ...content];
+    async convo(messages: any[]) {
         console.log(chalk.bgYellow(chalk.black(JSON.stringify(messages, null, 2))));
         return llm.chat.completions.create({
             model: "grok-beta",

@@ -50,9 +50,12 @@ async function main() {
     const shortTermMemories = (await db.getLatestShortTermMemories(
       sessionId
     )) as any[];
+    const longTermMemory = await db.getLongTermMemory(sessionId);
 
+    // 4. Handle User Input
     const userInput = line.trim();
 
+    // 5. Handle Commands (if starts with !)
     if (userInput.startsWith("!")) {
       // Handle commands
       const command = userInput.slice(1).trim().toLowerCase();
@@ -83,7 +86,11 @@ async function main() {
       continue;
     }
 
-    const assistantContext = [
+    const assistantContextMessages = [
+      {
+        role: "system",
+        content: `You are a helpful assistant. You are given a conversation, please keep it as casual as possible.${longTermMemory ? `\n\nLong Term Memory: ${longTermMemory}` : ""}`,
+      },
       ...shortTermMemories!
         .map(({ content, role }) => ({ role, content }))
         .reverse(),
@@ -94,8 +101,7 @@ async function main() {
     ];
 
     const result = await memoryTool.convo(
-      "You are a helpful assistant. You are given a conversation, please keep it as casual as possible.",
-      assistantContext
+      assistantContextMessages
     );
 
     const assistantMessage = result.choices[0].message.content;
