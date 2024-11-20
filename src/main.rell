@@ -1,0 +1,11 @@
+module;
+
+object my_name {
+  mutable name= "World";
+ }
+
+operation set_name(name) {
+  my_name.name = name;
+}
+
+query hello_world() = "Hello %s!".format(my_name.name);

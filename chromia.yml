@@ -1,0 +1,10 @@
+blockchains:
+  ai-agent-tutorial:
+    module: main
+compile:
+  rellVersion: 0.13.5
+database:
+  schema: schema_ai_agent_tutorial
+test:
+  modules:
+    - test
