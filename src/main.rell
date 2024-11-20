@@ -1,11 +1,114 @@
 module;
 
-object my_name {
-  mutable name= "World";
- }
-
-operation set_name(name) {
-  my_name.name = name;
+entity agent {
+    address: byte_array;
+    key address;
+    name: text;
 }
 
-query hello_world() = "Hello %s!".format(my_name.name);
+entity llm_log {
+    index agent;
+}
+
+entity short_term_memory {
+    session_id: text;
+    created_at: integer = op_context.last_block_time;
+    role: text;
+    content: text;
+    index agent, session;
+}
+
+entity long_term_memory {
+    mutable content: text;
+    created_at: integer = op_context.last_block_time;
+    key session;
+    index agent;
+}
+
+entity session {
+    session_id: text;
+    created_at: integer = op_context.last_block_time;
+    index agent;
+}
+
+operation create_agent(name: text) {
+    val signer = op_context.get_signers()[0];
+    create agent (
+        name = name,
+        address = signer
+    );
+}
+
+operation create_session(session_id: text) {
+    val signer = op_context.get_signers()[0];
+    val agent = agent @ { .address == signer };
+    val session = create_session_if_not_exists(session_id, agent);
+    create long_term_memory (
+        content = "",
+        agent = agent,
+        session = session
+    );
+}
+
+function create_session_if_not_exists(session_id: text, agent: agent): session {
+    return create session (
+        session_id = session_id,
+        agent = agent
+    );
+}
+
+operation create_or_edit_long_term_memory(session_id: text, content: text) {
+    val signer = op_context.get_signers()[0];
+    val agent = agent @ { .address == signer };
+    val session = session @ { .session_id == session_id };
+    val current_ltm = long_term_memory @? { .session.session_id == session_id };
+
+    if (current_ltm == null) {
+        create long_term_memory (
+            content = content,
+            agent = agent,
+            session = session
+        );
+    } else {
+        update long_term_memory @ { .session.session_id == session_id } (
+            .content = content
+        );
+    }
+}
+
+operation create_short_term_memory(session_id: text, role: text, content: text) {
+    val signer = op_context.get_signers()[0];
+    val agent = agent @ { .address == signer };
+
+    // Check if session exists, if not, create it
+    var session = session @? { .session_id == session_id };
+    if (session == null) {
+        session = create_session_if_not_exists(session_id, agent);
+    }
+
+    create short_term_memory (
+        session_id = session_id,
+        role = role,
+        content = content,
+        agent = agent,
+        session = session
+    );
+}
+
+query get_latest_short_term_memories(session_id: text, n_memories: integer = 10) {
+    return short_term_memory @* {
+        .session.session_id == session_id
+    } (
+        @sort_desc @omit .created_at,
+        .role,
+        .content,
+        .created_at
+    ) limit n_memories;
+}
+
+query get_long_term_memory(session_id: text): text? {
+    val memory = long_term_memory @? {
+        .session.session_id == session_id
+    };
+    return memory?.content;
+}
