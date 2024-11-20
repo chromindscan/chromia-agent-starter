@@ -10,6 +10,7 @@ import {
 import { MemoryTool } from "./tools/memory";
 import fs from "fs";
 import readline from "readline";
+import chalk from "chalk";
 
 async function main() {
   const db = new ChromiaDB({
@@ -19,56 +20,87 @@ async function main() {
   });
   await db.init();
 
+  // 1. Create Agent
   try {
     await db.createAgent("test");
   } catch {
-    console.log("Agent already exists or creation failed.");
+    console.log(chalk.red("Agent already exists or creation failed."));
   }
 
+  // 2. Generate Session ID
   let sessionId = process.env.SESSION_ID;
   if (!sessionId) {
     sessionId = await db.generateSessionId();
     fs.appendFileSync(".env", `\nSESSION_ID=${sessionId}`);
   }
-  console.log(`Session ID: ${sessionId}`);
+  console.log(chalk.cyan(`Session ID: ${sessionId}`));
 
   const memoryTool = new MemoryTool(db, sessionId);
 
+  // 3. Start Conversation
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
+    prompt: chalk.green("You: "),
   });
 
+  rl.prompt();
+
   for await (const line of rl) {
-    const longTermMemory = await db.getLongTermMemory(sessionId);
     const shortTermMemories = (await db.getLatestShortTermMemories(
       sessionId
     )) as any[];
-    console.log("Long Term Memory:", longTermMemory);
-    console.log("Short Term Memories:", shortTermMemories);
+
     const userInput = line.trim();
-    if (
-      userInput.toLowerCase() === "exit" ||
-      userInput.toLowerCase() === "quit"
-    ) {
-      console.log("Conversation ended.");
-      break;
+
+    if (userInput.startsWith("!")) {
+      // Handle commands
+      const command = userInput.slice(1).trim().toLowerCase();
+      if (command === "exit" || command === "quit") {
+        console.log(chalk.yellow("Conversation ended."));
+        break;
+      } else if (command === "history") {
+        const longTermMemory = await db.getLongTermMemory(sessionId);
+        const shortTermMemories = await db.getLatestShortTermMemories(
+          sessionId
+        ) as any[];
+
+        console.log(chalk.yellow("\nLong Term Memory:"));
+        console.log(chalk.white(longTermMemory));
+
+        console.log(chalk.yellow("\nShort Term Memories:"));
+        shortTermMemories!.reverse().forEach(({ role, content }) => {
+          const roleLabel =
+            role === "user"
+              ? chalk.green("You")
+              : chalk.blue("Assistant");
+          console.log(`${roleLabel}: ${content}`);
+        })
+      } else {
+        console.log(chalk.red(`Unknown command: ${command}`));
+      }
+      rl.prompt();
+      continue;
     }
+
+    const assistantContext = [
+      ...shortTermMemories!
+        .map(({ content, role }) => ({ role, content }))
+        .reverse(),
+      {
+        role: "user",
+        content: userInput,
+      },
+    ];
+
     const result = await memoryTool.convo(
       "You are a helpful assistant. You are given a conversation, please keep it as casual as possible.",
-      [
-        ...shortTermMemories!
-          .map(({ content, role }) => ({ role, content }))
-          .reverse(),
-        {
-          role: "user",
-          content: userInput,
-        },
-      ]
+      assistantContext
     );
 
     const assistantMessage = result.choices[0].message.content;
-    console.log(`Assistant: ${assistantMessage}`);
+    console.log(chalk.blue(`Assistant: ${assistantMessage}`));
+
     await db.addShortTermMemory({
       session_id: sessionId,
       role: "user",
@@ -79,11 +111,12 @@ async function main() {
       role: "assistant",
       content: assistantMessage!,
     });
-    await memoryTool.updateLongTermMemory(
-      `${shortTermMemories!
-        .map(({ content, role }) => `${role}: ${content}`)
-        .join("\n")}\nAssistant: ${assistantMessage}`
-    );
+
+    const longTermMemoryUpdate = `${shortTermMemories!
+      .map(({ content, role }) => `${role}: ${content}`)
+      .join("\n")}\nAssistant: ${assistantMessage}`;
+    await memoryTool.updateLongTermMemory(longTermMemoryUpdate);
+
     rl.prompt();
   }
 
