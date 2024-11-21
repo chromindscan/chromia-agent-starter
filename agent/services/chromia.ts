@@ -19,7 +19,7 @@ interface ChromiaDBConfig {
   signatureProvider: SignatureProvider;
 }
 
-interface ShortTermMemory {
+export interface ShortTermMemory {
   session_id: string;
   role: string;
   content: string;

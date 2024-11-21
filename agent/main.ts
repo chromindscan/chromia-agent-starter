@@ -36,6 +36,7 @@ async function main() {
   console.log(chalk.cyan(`Session ID: ${sessionId}`));
 
   const memoryTool = new MemoryTool(db, sessionId);
+  await memoryTool.init();
 
   // 3. Start Conversation
   const rl = readline.createInterface({
@@ -47,11 +48,6 @@ async function main() {
   rl.prompt();
 
   for await (const line of rl) {
-    const shortTermMemories = (await db.getLatestShortTermMemories(
-      sessionId
-    )) as any[];
-    const longTermMemory = await db.getLongTermMemory(sessionId);
-
     // 4. Handle User Input
     const userInput = line.trim();
 
@@ -64,21 +60,19 @@ async function main() {
         break;
       } else if (command === "history") {
         const longTermMemory = await db.getLongTermMemory(sessionId);
-        const shortTermMemories = await db.getLatestShortTermMemories(
+        const shortTermMemories = (await db.getLatestShortTermMemories(
           sessionId
-        ) as any[];
+        )) as any[];
 
         console.log(chalk.yellow("\nLong Term Memory:"));
         console.log(chalk.white(longTermMemory));
 
         console.log(chalk.yellow("\nShort Term Memories:"));
-        shortTermMemories!.reverse().forEach(({ role, content }) => {
+        shortTermMemories.reverse().forEach(({ role, content }) => {
           const roleLabel =
-            role === "user"
-              ? chalk.green("You")
-              : chalk.blue("Assistant");
+            role === "user" ? chalk.green("You") : chalk.blue("Assistant");
           console.log(`${roleLabel}: ${content}`);
-        })
+        });
       } else {
         console.log(chalk.red(`Unknown command: ${command}`));
       }
@@ -89,9 +83,13 @@ async function main() {
     const assistantContextMessages = [
       {
         role: "system",
-        content: `You are a helpful assistant. You are given a conversation, please keep it as casual as possible.${longTermMemory ? `\n\nLong Term Memory: ${longTermMemory}` : ""}`,
+        content: `You are a helpful assistant. You are given a conversation, please keep it as casual as possible.${
+          memoryTool.longTermMemory
+            ? `\n\nLong Term Memory: ${memoryTool.longTermMemory}`
+            : ""
+        }`,
       },
-      ...shortTermMemories!
+      ...memoryTool.shortTermMemories
         .map(({ content, role }) => ({ role, content }))
         .reverse(),
       {
@@ -100,25 +98,23 @@ async function main() {
       },
     ];
 
-    const result = await memoryTool.convo(
-      assistantContextMessages
-    );
+    const result = await memoryTool.convo(assistantContextMessages);
 
     const assistantMessage = result.choices[0].message.content;
     console.log(chalk.blue(`Assistant: ${assistantMessage}`));
 
-    await db.addShortTermMemory({
+    await memoryTool.addShortTermMemory({
       session_id: sessionId,
       role: "user",
       content: userInput,
     });
-    await db.addShortTermMemory({
+    await memoryTool.addShortTermMemory({
       session_id: sessionId,
       role: "assistant",
       content: assistantMessage!,
     });
 
-    const longTermMemoryUpdate = `${shortTermMemories!
+    const longTermMemoryUpdate = `${memoryTool.shortTermMemories
       .map(({ content, role }) => `${role}: ${content}`)
       .join("\n")}\nAssistant: ${assistantMessage}`;
     await memoryTool.updateLongTermMemory(longTermMemoryUpdate);
