@@ -30,9 +30,22 @@ export class MemoryTool {
   }
 
   async chatCompletion(messages: any[]) {
-    const response = await llm.chat.completions.create({
-      model: this.model,
-      messages,
+    const requestBody = {
+        model: this.model,
+        messages,
+      }
+    const response = await llm.chat.completions.create(requestBody);
+    await this.db.createLog({
+      sessionId: this.sessionId,
+      chatId: response.id,
+      baseUrl: llm.baseURL,
+      requestModel: this.model,
+      requestMessages: JSON.stringify(messages),
+      userQuestion: messages[messages.length - 1].content,
+      requestRaw: JSON.stringify(requestBody),
+      responseModel: response.model,
+      assistantReply: response.choices[0].message.content || "",
+      responseRaw: JSON.stringify(response),
     });
     return response;
   }
@@ -42,17 +55,17 @@ export class MemoryTool {
     return this.chatCompletion(messages);
   }
 
-  async updateLongTermMemory(content: string) {
-    const currentLongTermMemory = await this.db.getLongTermMemory(
-      this.sessionId
-    );
+  async updateLongTermMemory(assistantMessage: string) {
+    const shortTermMemoriesUpdate = `${this.shortTermMemories
+        .map(({ content, role }) => `${role}: ${content}`)
+        .join("\n")}\nAssistant: ${assistantMessage}`;
     const prompt = `Act as a professional notetaker, you will be given an existing long term memory of a character and recent conversation, please update the memory of the character. Please do not add additional contexts if it doesn't exist, only update the memory.
 
 ### Old Memory        
-${currentLongTermMemory}
+${this.longTermMemory}
 
 ### Recent Conversation
-${content}`;
+${shortTermMemoriesUpdate}`;
 
     const response = await this.chatCompletion([
       { role: "system", content: prompt },

@@ -25,6 +25,19 @@ export interface ShortTermMemory {
   content: string;
 }
 
+export interface Log {
+  sessionId: string;
+  chatId: string;
+  baseUrl: string;
+  requestModel: string;
+  requestMessages: any;
+  userQuestion: string;
+  requestRaw: any;
+  responseModel: string;
+  assistantReply: string;
+  responseRaw: any;
+}
+
 export class ChromiaDB {
   clientUrl: string | string[];
   blockchainIid?: number;
@@ -59,6 +72,36 @@ export class ChromiaDB {
     } else {
       throw new Error("No blockchain identifier provided");
     }
+  }
+
+  async createLog(
+    log: Log
+  ) {
+    await this.client.signAndSendUniqueTransaction(
+      {
+        name: "create_log",
+        args: [
+          log.sessionId,
+          log.chatId,
+          log.baseUrl,
+          log.requestModel,
+          log.requestMessages,
+          log.userQuestion,
+          log.requestRaw,
+          log.responseModel,
+          log.assistantReply,
+          log.responseRaw,
+      ],
+    },
+      this.signatureProvider
+    );
+  }
+
+  async getLogs(sessionId: string) {
+    return this.client.query({
+      name: "get_logs",
+      args: { session_id: sessionId },
+    });
   }
 
   async generateSessionId() {

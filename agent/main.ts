@@ -34,6 +34,7 @@ async function main() {
     fs.appendFileSync(".env", `\nSESSION_ID=${sessionId}`);
   }
   console.log(chalk.cyan(`Session ID: ${sessionId}`));
+  console.log(chalk.cyan("http://localhost:1234?sessionId=" + sessionId));
 
   const memoryTool = new MemoryTool(db, sessionId);
   await memoryTool.init();
@@ -100,7 +101,7 @@ async function main() {
 
     const result = await memoryTool.convo(assistantContextMessages);
 
-    const assistantMessage = result.choices[0].message.content;
+    const assistantMessage = result.choices[0].message.content!;
     console.log(chalk.blue(`Assistant: ${assistantMessage}`));
 
     await memoryTool.addShortTermMemory({
@@ -113,11 +114,7 @@ async function main() {
       role: "assistant",
       content: assistantMessage!,
     });
-
-    const longTermMemoryUpdate = `${memoryTool.shortTermMemories
-      .map(({ content, role }) => `${role}: ${content}`)
-      .join("\n")}\nAssistant: ${assistantMessage}`;
-    await memoryTool.updateLongTermMemory(longTermMemoryUpdate);
+    await memoryTool.updateLongTermMemory(assistantMessage);
 
     rl.prompt();
   }

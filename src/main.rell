@@ -7,7 +7,22 @@ entity agent {
 }
 
 entity llm_log {
-    index agent;
+    index session;
+    uuid: text;
+    key uuid;
+    chat_id: text;
+    model: text;
+    base_url: text;
+    // Request
+    request_model: text;
+    request_messages: json;
+    user_question: text;
+    request_raw: json;
+    // Response
+    response_model: text;
+    assistant_reply: text;
+    response_raw: json;
+    created_at: integer = op_context.last_block_time;
 }
 
 entity short_term_memory {
@@ -36,6 +51,54 @@ operation create_agent(name: text) {
     create agent (
         name = name,
         address = signer
+    );
+}
+
+operation create_log(
+    session_id: text,
+    chat_id: text,
+    base_url: text,
+    request_model: text,
+    request_messages: json,
+    user_question: text,
+    request_raw: json,
+    response_model: text,
+    assistant_reply: text,
+    response_raw: json
+) {
+    val signer = op_context.get_signers()[0];
+    val agent = agent @ { .address == signer };
+    val session = session @ { .session_id == session_id };
+    // check session owner
+    require(session.agent == agent);
+    val uuid = request_model + "-" + chat_id;
+    create llm_log (
+        session = session,
+        uuid = uuid,
+        chat_id = chat_id,
+        model = request_model,
+        base_url = base_url,
+        request_model = request_model,
+        request_messages = request_messages,
+        user_question = user_question,
+        request_raw = request_raw,
+        response_model = response_model,
+        assistant_reply = assistant_reply,
+        response_raw = response_raw
+    );
+}
+
+query get_logs(session_id: text) {
+    return llm_log @* { .session.session_id == session_id } (
+        @sort_desc @omit .created_at,
+        .created_at,
+        .chat_id,
+        .model,
+        .base_url,
+        .request_model,
+        .request_messages,
+        .user_question,
+        .assistant_reply
     );
 }
 

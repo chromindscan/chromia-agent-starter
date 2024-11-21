@@ -3,3 +3,4 @@ src/lib/*
 .chromia
 .env
 node_modules
+dist
