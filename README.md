@@ -2,6 +2,8 @@
 
 This repository demonstrates using Chromia to store AI Agent short-term and long-term memories.
 
+![](ui.jpeg)
+
 ![](demo.png)
 
 ## How to Run
@@ -31,7 +33,13 @@ This repository demonstrates using Chromia to store AI Agent short-term and long
    chr node start --wipe
    ```
 
-4. In another terminal, run the AI Agent:
+4. In another terminal, start the UI at localhost:1234
+    ```sh
+    bun run ui
+    ```
+
+5. In another terminal, run the AI Agent:
    ```sh
    bun run dev
    ```
+
