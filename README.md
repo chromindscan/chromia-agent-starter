@@ -1,12 +1,28 @@
-# Chromia Agent Starter
+# Chromia Neural Interface
 
-This repository demonstrates using Chromia to store AI Agent short-term and long-term memories.
+This repository demonstrates using Chromia to store AI Agent short-term and long-term memories on chain. It also demonstrates a simple neural interface for interacting with the AI Agent.
 
 ![](ui.jpeg)
 
+
+## Roadmap
+
+### Current Features
+- ✅ Short-term and long-term memory storage
+- ✅ Neural activity logging
+- ✅ Real-time memory updates
+- ✅ Interactive neural interface
+
+### Upcoming Features
+- 🧠 AI Agent Personalities
+  - Customizable personality traits for each AI Agent
+  - Language preferences
+  - AI Agent access to external tools / APIs to execute tasks autonomously 
+
+
 ![](demo.png)
 
-## How it works
+## How it works (Mermaid Diagram)
 
 ```mermaid
 erDiagram
@@ -103,4 +119,9 @@ erDiagram
    ```sh
    bun run dev
    ```
+
+6. Navigate to the provided URL in your browser.
+    ```
+    http://localhost:1234/?sessionId=<session_id>
+    ```
 

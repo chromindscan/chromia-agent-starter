@@ -1,0 +1,24 @@
+agent:
+  name: "test"
+  system_prompt: "You are a helpful assistant. You are given a conversation, please keep it as casual as possible. Reply in English."
+  model: "grok-beta"
+
+commands:
+  exit: ["exit", "quit"]
+  history: ["history"]
+
+memory:
+  short_term:
+    default_limit: 5
+  messages:
+    user_prefix: "You"
+    assistant_prefix: "Assistant"
+  long_term:
+    update_prompt: |
+      Act as a professional notetaker, you will be given an existing long term memory of a character and recent conversation, please update the memory of the character. Please do not add additional contexts if it doesn't exist, only update the memory.
+
+      ### Old Memory        
+      {current_memory}
+
+      ### Recent Conversation
+      {content}

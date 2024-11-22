@@ -67,7 +67,8 @@ const App = {
       isLoading: ref(false),
       error: ref(null),
       activeSection: ref(null),
-      isInitialLoad: ref(true)
+      isInitialLoad: ref(true),
+      isAutoScrollEnabled: ref(true),
     };
 
     let vantaEffect = null;
@@ -112,6 +113,7 @@ const App = {
       }
       if (STATE.longTermMemory.value !== memoryLong) {
         STATE.longTermMemory.value = memoryLong;
+        scrollToBottom('.long-term-scroll');
       }
       if (STATE.agentName.value !== agentData.name) {
         STATE.agentName.value = agentData.name;
@@ -195,6 +197,15 @@ const App = {
       return userInput;
     }
 
+    function scrollToBottom(elementClass) {
+      nextTick(() => {
+        const element = document.querySelector(elementClass);
+        if (element && STATE.isAutoScrollEnabled.value) {
+          element.scrollTop = element.scrollHeight;
+        }
+      });
+    }
+
     onMounted(() => {
       nextTick(() => initializeVantaEffect());
       try {
@@ -215,6 +226,7 @@ const App = {
       ...STATE,
       setActiveSection,
       timeAgo,
+      isAutoScrollEnabled: STATE.isAutoScrollEnabled,
     };
   },
   template: `
@@ -225,6 +237,9 @@ const App = {
         <span class="relative">Neural Interface: AI Brain Explorer</span>
       </h1>
       <div class="flex items-center justify-center gap-4 mb-6">
+        <div class="px-3 py-1 text-sm font-medium text-cyan-400/80 rounded-md bg-cyan-500/10 border border-cyan-500/20">
+          Name
+        </div>
         <div class="group flex items-center gap-2 px-6 py-3 rounded-lg bg-black/40 backdrop-blur-md border border-cyan-500/20 hover:border-cyan-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/10">
           <span class="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent relative">
             {{ agentName }}
@@ -312,7 +327,7 @@ const App = {
               <div v-for="(item, index) in shortTermMemory" :key="index" 
                 class="mb-2 p-3 bg-black/40 rounded border border-purple-500/10 hover:border-purple-500/30 transition-colors">
                 <span :class="['font-bold', item.role === 'user' ? 'text-yellow-400' : 'text-purple-400']">
-                  {{ item.role }}:
+                  {{ item.role === 'assistant' ? agentName : item.role }}:
                 </span>
                 <span class="ml-2 text-gray-300">{{ item.content }}</span>
               </div>
@@ -331,8 +346,23 @@ const App = {
             :isActive="activeSection === 'longTerm'"
             @click="() => setActiveSection('longTerm')"
           >
-            <div class="h-full overflow-y-auto">
-              <div class="whitespace-pre-wrap p-4 bg-black/40 rounded border border-cyan-500/10 text-gray-300">
+            <div class="h-full overflow-y-auto relative">
+              <div class="absolute top-0 right-0 z-10 p-2">
+                <button 
+                  @click.stop="isAutoScrollEnabled = !isAutoScrollEnabled"
+                  :class="[
+                    'px-3 py-1 rounded text-sm font-medium transition-all duration-300',
+                    isAutoScrollEnabled 
+                      ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30' 
+                      : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
+                  ]"
+                >
+                  {{ isAutoScrollEnabled ? '🔄 Auto-scroll On' : '⏸️ Auto-scroll Off' }}
+                </button>
+              </div>
+              <div 
+                class="long-term-scroll whitespace-pre-wrap p-4 bg-black/40 rounded border border-cyan-500/10 text-gray-300 max-h-[calc(100vh-20rem)] overflow-y-auto mt-10"
+              >
                 {{ longTermMemory }}
               </div>
             </div>
