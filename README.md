@@ -110,7 +110,7 @@ erDiagram
    chr node start --wipe
    ```
 
-4. In another terminal, start the UI at localhost:1234
+4. [Optional] In another terminal, start the UI at localhost:1234
     ```sh
     bun run ui
     ```
