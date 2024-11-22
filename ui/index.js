@@ -62,6 +62,8 @@ const App = {
       logs: ref([]),
       shortTermMemory: ref([]),
       longTermMemory: ref(""),
+      agentName: ref(""),
+      agentGoal: ref(""),
       isLoading: ref(false),
       error: ref(null),
       activeSection: ref(null),
@@ -84,13 +86,14 @@ const App = {
         }
         
         const db = await initializeDatabase();
-        const [memoryLong, memoryShort, memoryLogs] = await Promise.all([
+        const [memoryLong, memoryShort, memoryLogs, agentData] = await Promise.all([
           db.getLongTermMemory(sessionId),
           db.getLatestShortTermMemories(sessionId),
           db.getLogs(sessionId),
+          db.getAgent(signatureProvider.pubKey),
         ]);
 
-        updateStateIfChanged(memoryLogs, memoryShort, memoryLong);
+        updateStateIfChanged(memoryLogs, memoryShort, memoryLong, agentData);
         STATE.isInitialLoad.value = false;
       } catch (e) {
         STATE.error.value = `Failed to fetch memory data: ${e.message}`;
@@ -100,7 +103,7 @@ const App = {
       }
     }
 
-    function updateStateIfChanged(memoryLogs, memoryShort, memoryLong) {
+    function updateStateIfChanged(memoryLogs, memoryShort, memoryLong, agentData) {
       if (JSON.stringify(STATE.logs.value) !== JSON.stringify(memoryLogs)) {
         STATE.logs.value = memoryLogs;
       }
@@ -109,6 +112,12 @@ const App = {
       }
       if (STATE.longTermMemory.value !== memoryLong) {
         STATE.longTermMemory.value = memoryLong;
+      }
+      if (STATE.agentName.value !== agentData.name) {
+        STATE.agentName.value = agentData.name;
+      }
+      if (STATE.agentGoal.value !== agentData.goal) {
+        STATE.agentGoal.value = agentData.goal;
       }
     }
 
@@ -215,6 +224,23 @@ const App = {
         <span class="absolute -inset-1 blur-sm bg-cyan-500/20"></span>
         <span class="relative">Neural Interface: AI Brain Explorer</span>
       </h1>
+      <div class="flex items-center justify-center gap-4 mb-6">
+        <div class="group flex items-center gap-2 px-6 py-3 rounded-lg bg-black/40 backdrop-blur-md border border-cyan-500/20 hover:border-cyan-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/10">
+          <span class="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent relative">
+            {{ agentName }}
+          </span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="px-3 py-1 text-sm font-medium text-cyan-400/80 rounded-md bg-cyan-500/10 border border-cyan-500/20">
+            Goal
+          </div>
+          <div class="group px-6 py-3 rounded-lg bg-black/40 backdrop-blur-md border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/10">
+            <span class="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              {{ agentGoal }}
+            </span>
+          </div>
+        </div>
+      </div>
       <div v-if="error" 
         class="fixed top-4 right-4 bg-red-500/20 border border-red-500 text-red-400 px-4 py-2 rounded-lg backdrop-blur-sm z-20">
         {{ error }}
@@ -233,7 +259,7 @@ const App = {
         <div :class="[
           'transition-all duration-500',
           activeSection && activeSection !== 'logs' ? 'hidden' : 'block',
-          'h-[calc(100vh-6rem)]'
+          'h-[calc(100vh-12rem)]'
         ]">
           <BrainSection 
             title="Neural Activity Logs" 
@@ -274,7 +300,7 @@ const App = {
         <div :class="[
           'transition-all duration-500',
           activeSection && activeSection !== 'shortTerm' ? 'hidden' : 'block',
-          'h-[calc(100vh-6rem)]'
+          'h-[calc(100vh-12rem)]'
         ]">
           <BrainSection 
             title="Synaptic Buffer (Short-Term)" 
@@ -297,7 +323,7 @@ const App = {
         <div :class="[
           'transition-all duration-500',
           activeSection && activeSection !== 'longTerm' ? 'hidden' : 'block',
-          'h-[calc(100vh-6rem)]'
+          'h-[calc(100vh-12rem)]'
         ]">
           <BrainSection 
             title="Neural Archive (Long-Term)" 

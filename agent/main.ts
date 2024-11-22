@@ -21,10 +21,21 @@ async function main() {
   await db.init();
 
   // 1. Create Agent
+  const tempRl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
   try {
-    await db.createAgent("test");
+    console.log(chalk.yellow("Creating agent..."));
+    const question = (query: string): Promise<string> =>
+      new Promise((resolve) => tempRl.question(query, resolve));
+    const agentName = await question(chalk.yellow("Enter agent name: "));
+    const goal = await question(chalk.yellow("Enter agent goal: "));
+    await db.createAgent(agentName, goal);
+    tempRl.close();
   } catch {
     console.log(chalk.red("Agent already exists or creation failed."));
+    tempRl.close();
   }
 
   // 2. Generate Session ID
@@ -71,7 +82,7 @@ async function main() {
         console.log(chalk.yellow("\nShort Term Memories:"));
         shortTermMemories.reverse().forEach(({ role, content }) => {
           const roleLabel =
-            role === "user" ? chalk.green("You") : chalk.blue("Assistant");
+            role === "user" ? chalk.green("You") : chalk.cyan("Assistant");
           console.log(`${roleLabel}: ${content}`);
         });
       } else {
@@ -84,7 +95,10 @@ async function main() {
     const assistantContextMessages = [
       {
         role: "system",
-        content: `You are a helpful assistant. You are given a conversation, please keep it as casual as possible.${
+        content: `You are a helpful assistant. You are given a conversation, please keep it as casual as possible. You will be given a goal and long term memory, please use them to help you answer the user's question.
+        ${memoryTool.agentName ? `\n\nAssistant Name: ${memoryTool.agentName}` : ""}
+        ${memoryTool.agentGoal ? `\n\nAgent Goal: ${memoryTool.agentGoal}` : ""}
+        ${
           memoryTool.longTermMemory
             ? `\n\nLong Term Memory: ${memoryTool.longTermMemory}`
             : ""
@@ -102,7 +116,7 @@ async function main() {
     const result = await memoryTool.convo(assistantContextMessages);
 
     const assistantMessage = result.choices[0].message.content!;
-    console.log(chalk.blue(`Assistant: ${assistantMessage}`));
+    console.log(chalk.cyan(`Assistant: ${assistantMessage}`));
 
     await memoryTool.addShortTermMemory({
       session_id: sessionId,

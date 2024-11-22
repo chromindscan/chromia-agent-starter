@@ -4,6 +4,7 @@ entity agent {
     address: byte_array;
     key address;
     name: text;
+    goal: text;
 }
 
 entity llm_log {
@@ -46,11 +47,21 @@ entity session {
     index agent;
 }
 
-operation create_agent(name: text) {
+operation create_agent(name: text, goal: text) {
     val signer = op_context.get_signers()[0];
     create agent (
         name = name,
-        address = signer
+        address = signer,
+        goal = goal
+    );
+}
+
+query get_agent(signer: byte_array) {
+    return agent @ {
+        .address == signer
+    } (
+        .name,
+        .goal
     );
 }
 

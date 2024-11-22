@@ -6,6 +6,8 @@ export class MemoryTool {
   model: string = "grok-beta";
   shortTermMemories: { role: string; content: string }[] = [];
   longTermMemory: string = "";
+  agentName: string = "";
+  agentGoal: string = "";
 
   constructor(private db: ChromiaDB, private sessionId: string) {}
 
@@ -16,6 +18,13 @@ export class MemoryTool {
     this.longTermMemory = (await this.db.getLongTermMemory(
       this.sessionId
     )) as string;
+    await this.updateAgent();
+  }
+
+  async updateAgent() {
+    const agentData = (await this.db.getAgent(this.db.signatureProvider.pubKey)) as any;
+    this.agentName = agentData.name;
+    this.agentGoal = agentData.goal;
   }
 
   async addShortTermMemory(memory: ShortTermMemory) {
@@ -51,7 +60,6 @@ export class MemoryTool {
   }
 
   async convo(messages: any[]) {
-    console.log(chalk.bgYellow(chalk.black(JSON.stringify(messages, null, 2))));
     return this.chatCompletion(messages);
   }
 

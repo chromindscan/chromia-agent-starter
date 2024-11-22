@@ -74,9 +74,7 @@ export class ChromiaDB {
     }
   }
 
-  async createLog(
-    log: Log
-  ) {
+  async createLog(log: Log) {
     await this.client.signAndSendUniqueTransaction(
       {
         name: "create_log",
@@ -91,8 +89,8 @@ export class ChromiaDB {
           log.responseModel,
           log.assistantReply,
           log.responseRaw,
-      ],
-    },
+        ],
+      },
       this.signatureProvider
     );
   }
@@ -153,13 +151,22 @@ export class ChromiaDB {
     });
   }
 
-  async createAgent(name: string) {
+  async createAgent(name: string, goal: string) {
     return this.client.signAndSendUniqueTransaction(
       {
         name: "create_agent",
-        args: [name],
+        args: [name, goal],
       },
       this.signatureProvider
     );
+  }
+
+  async getAgent(signer: any) {
+    return this.client.query({
+      name: "get_agent",
+      args: {
+        signer,
+      },
+    });
   }
 }
