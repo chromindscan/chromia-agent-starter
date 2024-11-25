@@ -23,6 +23,10 @@ RUN apt-get install pmc
 # Install Bun
 RUN curl -fsSL https://bun.sh/install | bash
 
+# Add these lines to ensure bun is in PATH
+ENV BUN_INSTALL="/root/.bun"
+ENV PATH="/root/.bun/bin:$PATH"
+
 RUN chr --version
 
 RUN rm -rf /var/lib/apt/lists/*
